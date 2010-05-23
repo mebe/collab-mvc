@@ -1,0 +1,320 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <!--
+             * Copyright (c) 2008, University of Helsinki
+             * All rights reserved.
+             *
+             * Redistribution and use in source and binary forms, with or without
+             * modification, are permitted provided that the following conditions are met:
+             *     * Redistributions of source code must retain the above copyright
+             *       notice, this list of conditions and the following disclaimer.
+             *     * Redistributions in binary form must reproduce the above copyright
+             *       notice, this list of conditions and the following disclaimer in the
+             *       documentation and/or other materials provided with the distribution.
+             *     * Neither the name of the University of Helsinki nor the
+             *       names of its contributors may be used to endorse or promote products
+             *       derived from this software without specific prior written permission.
+             *
+             * THIS SOFTWARE IS PROVIDED BY University of Helsinki ''AS IS'' AND ANY
+             * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+             * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+             * DISCLAIMED. IN NO EVENT SHALL University of Helsinki BE LIABLE FOR ANY
+             * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+             * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+             * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+             * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+             * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+             * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+         -->
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+    <title>Collab Library Test</title>
+    <script id="yde" src="../../yui/build/yahoo-dom-event/yahoo-dom-event.js" type="text/javascript">
+    </script>
+    <script id="logger" src="../../yui/build/logger/logger-min.js" type="text/javascript">
+    </script>
+    <script id="test" src="../../yui/build/yuitest/yuitest-min.js" type="text/javascript">
+    </script>
+    <script id="get" src="../../yui/build/get/get-min.js" type="text/javascript">
+    </script>
+    <link type="text/css" charset="utf-8" rel="stylesheet" href="../../yui/build/logger/assets/skins/sam/logger.css">
+    </link>
+    <link type="text/css" charset="utf-8" rel="stylesheet" href="../../yui/build/yuitest/assets/skins/sam/yuitest.css">
+    </link>
+</head>
+<body>
+<script type="text/javascript">
+// Encapsulate the testing environment so we don't collapse with globals defined in the tested code
+(function() {
+    // Rename the testing YUI
+    var TestYAHOO = window.YAHOO;
+    delete window.YAHOO;
+
+    // Remove the script tags used to load the testing environment
+    var head = document.getElementsByTagName('head')[0];
+    ['yde', 'logger', 'test', 'get'].forEach(function(id) {
+        head.removeChild(document.getElementById(id));
+    });
+
+    // Some aliases
+    var T = {
+        c: TestYAHOO.tool.TestCase,
+        g: TestYAHOO.util.Get.script,
+        a: TestYAHOO.util.Assert
+    }
+
+    // Logger for test results
+    new TestYAHOO.tool.TestLogger();
+
+    // Load the framework
+    T.g('../../yui/build/yuiloader/yuiloader-beta-min.js');
+    T.g('../../../init.js?test');
+
+    var s = new TestYAHOO.tool.TestSuite({
+        name: "Collab libraries",
+        setUp: function() {
+            T.g('../../yui/build/yuiloader/yuiloader-beta-min.js');
+            T.g('../../../init.js?test');
+            setTimeout(function() {
+                Collab.Resource.baseUrl = Collab.baseUrl + 'lib/collab/tests/mocks';
+            }, 500);
+        },
+
+        tearDown: function() {
+            delete Collab;
+            delete YAHOO;
+        }
+    });
+
+    // Test init.js
+    s.add(new T.c({
+        name: 'Initialization',
+
+        testLoadedLibraries: function() {
+            // We need to wait to make sure the loading has actually happened
+            this.wait(function() {
+                T.a.isNotUndefined(window.YAHOO);
+                T.a.isNotUndefined(window.Inflector);
+                T.a.isNotUndefined(window.Collab);
+                T.a.isNotUndefined(window.Collab.Resource);
+                T.a.isNotUndefined(window.Collab.Controller);
+            }, 500);
+        },
+
+        testScriptParsing: function() {
+            T.a.isNotUndefined(window.Collab.script);
+            T.a.isNotUndefined(window.Collab.baseUrl);
+            T.a.isNotUndefined(window.Collab.paramsString);
+            T.a.isNotNull(window.Collab.script.match(/^http:\/\/.*\/init.js(\?.*)?$/));
+            T.a.areEqual(window.Collab.paramsString, 'test');
+        },
+
+        testAliases: function() {
+            T.a.isNotUndefined(window.Y);
+            T.a.areEqual(window.Y.Event, window.YAHOO.util.Event);
+            T.a.areEqual(window.Y.Dom, window.YAHOO.util.Dom);
+            T.a.areEqual(window.Y.Selector, window.YAHOO.util.Selector);
+            T.a.areEqual(window.Y.lang, window.YAHOO.lang);
+        },
+
+        testAssignments: function() {
+            T.a.isNotUndefined(Function.prototype.bind);
+            T.a.isNotUndefined(window.Collab.loader);
+        },
+
+        testElementExtensions: function() {
+            // Shorthand exists
+            T.a.isNotUndefined(window.$);
+
+            // getChildren method exists
+            T.a.isNotUndefined(window.YAHOO.util.Element.prototype.getChildren);
+
+            // Fetching with $ is succesful
+            var e = window.$('yui-log-hd0');
+            T.a.isNotUndefined(e);
+            T.a.isNotUndefined(e.get('element'));
+
+            // getChildren returns right amount of nodes
+            T.a.areEqual(e.getChildren().length, 2);
+            T.a.areEqual(e.getChildren('h4').length, 1);
+            T.a.areEqual(e.getChildren('.yui-log-btns').length, 1);
+
+            // The nodes returned by getChildren are automatically extended
+            T.a.isNotUndefined(e.getChildren('.yui-log-btns')[0].get);
+        }
+    }));
+
+    // Test model.js
+    s.add(new T.c({
+        name: 'Singular resource',
+        setUp: function() {
+            this.R = new Collab.Resource('resource');
+            this.valid = false;
+        },
+
+        tearDown: function() {
+            delete this.R;
+            delete this.valid;
+        },
+
+        testType: function() {
+            T.a.areEqual(this.R.type, 'singular');
+            T.a.isTrue(this.R.isSingular());
+        },
+
+        testInflections: function() {
+            T.a.areEqual(this.R.singular, 'resource');
+            T.a.areEqual(this.R.plural, 'resources');
+        },
+
+        testUrls: function() {
+            var urlMatchers = {}
+            urlMatchers.show = urlMatchers.create = urlMatchers.destroy = urlMatchers.update = /\/resource$/
+
+            T.a.isUndefined(this.R.urls.list, 'Should not have a list url!');
+
+            for (k in this.R.urls) {
+                if (this.R.urls.hasOwnProperty(k)) {
+                    T.a.isNotNull(this.R.urls[k].match(urlMatchers[k]), 'Does not match the right URL format!');
+                }
+            }
+        },
+
+        testFindWithNoArgs: function() {
+            try {
+                this.R.find();
+            } catch (er) {
+                this.valid = er.match(/argument/);
+            } finally {
+                T.a.isNotNull(this.valid, 'Should check for required parameters!');
+            }
+        },
+        testFindWithOnlyCallback: function() {
+            this.R.find(function() {
+                this.valid = true;
+            }
+                    .bind(this));
+            this.wait(function() {
+                T.a.isTrue(this.valid, 'Should allow params hash to be omitted!');
+            }, 500);
+        },
+        testFindWithParamsAndCallback: function() {
+            this.R.find({}, function() {
+                this.valid = true;
+            }
+                    .bind(this));
+            this.wait(function() {
+                T.a.isTrue(this.valid, 'Should work with params hash!');
+            }, 500);
+
+        }
+    }));
+
+    s.add(new T.c({
+        name: 'Plural resource',
+        setUp: function() {
+            this.R = new Collab.Resource('resources');
+        },
+
+        tearDown: function() {
+            delete this.R;
+        },
+
+        testType: function() {
+            T.a.areEqual(this.R.type, 'plural');
+            T.a.isTrue(this.R.isPlural());
+        },
+
+        testInflections: function() {
+            T.a.areEqual(this.R.singular, 'resource');
+            T.a.areEqual(this.R.plural, 'resources');
+        },
+
+        testUrls: function() {
+            var urlMatchers = {}
+            urlMatchers.list = urlMatchers.create = /\/resources$/;
+            urlMatchers.show = urlMatchers.destroy = urlMatchers.update = /\/resource\/:id$/;
+            for (k in this.R.urls) {
+                if (this.R.urls.hasOwnProperty(k)) {
+                    T.a.isNotNull(this.R.urls[k].match(urlMatchers[k]), 'Does not match the right URL format!');
+                }
+            }
+        }
+    }));
+
+    s.add(new T.c({
+        name: 'Subresource',
+
+        setUp: function() {
+            this.R = new Collab.Resource('anotherresource', {has: ['subresource']});
+            this.r = this.R.find(1);
+        },
+        tearDown: function() {
+            delete this.R;
+            delete this.r;
+        },
+
+        testExistence: function() {
+            this.isNotUndefined(this.r.subresource);
+            this.areEqual(this.R, this.r.subresource.belongsTo);
+        },
+
+        testUrls: function() {
+            var urlMatchers = {}
+            urlMatchers.show = urlMatchers.destroy = urlMatchers.update = urlMatchers.create = /\/resource\/subresource$/;
+            for (k in this.R.urls) {
+                if (this.R.urls.hasOwnProperty(k)) {
+                    T.a.isNotNull(this.R.urls[k].match(urlMatchers[k]), 'Does not match the right URL format!');
+                }
+            }
+        }
+    }));
+
+    s.add(new T.c({
+        name: 'Collection',
+        setUp: function() {
+            this.R = new Collab.Resource('resources', {collections: ['collection']});
+        },
+        tearDown: function() {
+            delete this.R;
+        },
+        testExistence: function() {
+            this.isNotUndefined(this.R.collection);
+            this.isTrue(this.R.collection.isPlural());
+        },
+        testUrls: function() {
+            var urlMatchers = {}
+            urlMatchers.list = urlMatchers.create = /\/resources\/collection$/;
+            urlMatchers.show = urlMatchers.destroy = urlMatchers.update = /\/resources\/collection\/:id$/;
+            for (k in this.R.urls) {
+                if (this.R.urls.hasOwnProperty(k)) {
+                    T.a.isNotNull(this.R.urls[k].match(urlMatchers[k]), 'Does not match the right URL format!');
+                }
+            }
+        }
+    }));
+
+    s.add(new T.c({
+        name: 'Build Query String',
+        testBuildQueryString: function() {
+            result = Collab.Resource.prototype.buildQueryString({'item_count': 40, 'item_offset': 13, 'sort_order': 'asc'})
+            self.areEqual('item_count=40&item_offset=13&sort_order=asc', result);
+        }
+    }));
+
+    s.add(new T.c({
+        name: 'Get type (reverse an url to a resource type)',
+        testGetType: function() {
+            self.areEqual('resource', '/resources');
+            self.areEqual('resource', '/resource/1');
+            self.areEqual('subresource', '/resource/1/subresources');
+            self.areEqual('subresource', '/resource/1/subresource/1');
+        }
+    }));
+
+    TestYAHOO.tool.TestRunner.add(s);
+    TestYAHOO.tool.TestRunner.run();
+})(); // Parenthesis make the anonymous function execute immediately
+</script>
+</body>
+</html>
